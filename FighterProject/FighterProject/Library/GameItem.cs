@@ -1,0 +1,278 @@
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
+
+
+namespace FighterProject.Library {
+
+    abstract class GameItem {
+
+        /// <summary>
+        /// The Game Item's spritesheet.
+        /// </summary>
+        public Texture2D Sprite { get; private set; }
+
+        /// <summary>
+        /// The Game Item's Position on the spritesheet.
+        /// </summary>
+        public Rectangle SpritePos { get; protected set; }
+
+        /// <summary>
+        /// The Game Item's draw position.
+        /// </summary>
+        public Vector2 DrawPosition { get; protected set; }
+
+        /// <summary>
+        /// The Game Item's Hurtbox.
+        /// </summary>
+        public Hurtbox Hurtbox { get; protected set; }
+
+        /// <summary>
+        /// The Game Item's Hitbox.
+        /// </summary>
+        public Hitbox Hitbox { get; protected set; }
+
+        /// <summary>
+        /// The Game Item's current position on the screen
+        /// </summary>
+        public Vector2 Position;
+
+        /// <summary>
+        /// The Game Item's current velocity.
+        /// </summary>
+        public Vector2 Velocity;
+
+        /// <summary>
+        /// The Game Item's offset.
+        /// </summary>
+        public Vector2 Offset { get; protected set; }
+
+        /// <summary>
+        /// The Game Item's Sprite Effects.
+        /// </summary>
+        public SpriteEffects CurrentEffects { get; private set; }
+
+        /// <summary>
+        /// The Game Item's Animation.
+        /// </summary>
+        public Animation CurrentAnimation { get; set; }
+
+        /// <summary>
+        /// The Game Item's draw scale.
+        /// </summary>
+        public float Scale { get; private set; }
+
+        /// <summary>
+        /// True if the Game Item is being drawn facing right.
+        /// </summary>
+        public bool IsFacingRight { get; private set; }
+
+        /// <summary>
+        /// The starting direction the Game Item is facing.
+        /// </summary>
+        protected bool StartingFacingRight { get; set; }
+
+        /// <summary>
+        /// The scaled Game Item widht.
+        /// </summary>
+        public int ScaledWidth {
+            get {
+                return Width * (int)Scale;
+            }
+        }
+
+        /// <summary>
+        /// The scaled Game Item height.
+        /// </summary>
+        public int ScaledHeight {
+            get {
+                return Height * (int)Scale;
+            }
+        }
+
+        /// <summary>
+        /// The Game Item's list of animations.
+        /// </summary>
+        protected List<Animation> Animations = new List<Animation>();
+
+        protected int Width;
+        protected int Height;
+
+        /// <summary>
+        /// A Game Item.
+        /// </summary>
+        /// <param name="sprite">The Spritesheet.</param>
+        /// <param name="scale">The draw scale.</param>
+        /// <param name="isFacingRight">True if we begin drawing facing right.</param>
+        public GameItem(Texture2D sprite, float scale = 1f, bool isFacingRight = true) {
+            Sprite = sprite;
+            DrawPosition = new Vector2(0, 0);
+            Hurtbox = new Hurtbox(0, 0, 0, 0);
+            Hitbox = new Hitbox(0, 0, 0, 0, 0);
+            Velocity = new Vector2(0, 0);
+            Offset = new Vector2(0, 0);
+            Scale = scale;
+            IsFacingRight = isFacingRight;
+            StartingFacingRight = isFacingRight;
+            if (isFacingRight) { CurrentEffects = SpriteEffects.None; }
+            else { CurrentEffects = SpriteEffects.FlipHorizontally; }
+        }
+
+        /// <summary>
+        /// Update the Game Item's parameters when called.
+        /// </summary>
+        public virtual void Update() {
+
+            // -- Animation -- //
+            if (CurrentAnimation.Animate())
+                UpdateFields();
+
+            // Draw
+            DrawPosition = new Vector2(Position.X - ScaledWidth / 2, Position.Y - ScaledHeight);
+
+            // Make sure velocity is correct
+            if (CurrentAnimation.CurrentSetVelocity) {
+                if (IsFacingRight)
+                    Velocity = new Vector2(CurrentAnimation.CurrentVelocity.X, -CurrentAnimation.CurrentVelocity.Y);
+                else
+                    Velocity = new Vector2(-CurrentAnimation.CurrentVelocity.X, -CurrentAnimation.CurrentVelocity.Y);
+            }
+        }
+
+        /// <summary>
+        /// Draw the Game Item on the screen.
+        /// </summary>
+        /// <param name="spriteBatch">The sprite batch.</param>
+        public virtual void Draw(SpriteBatch spriteBatch) {
+            spriteBatch.Draw(
+                Sprite,
+                DrawPosition + Offset,
+                SpritePos,
+                Color.White,
+                0f,
+                Vector2.Zero,
+                Scale,
+                CurrentEffects,
+                1f);
+        }
+
+        /// <summary>
+        /// Draw the Game Item's debug items.
+        /// </summary>
+        /// <param name="spriteBatch">The sprite batch.</param>
+        /// <param name="testSprite">The test sprite.</param>
+        public virtual void DrawDebug(SpriteBatch spriteBatch, Texture2D testSprite) {
+            // Draw a red square at the position value of the Game Item.
+            spriteBatch.Draw(
+                testSprite,
+                Position - new Vector2(2.5f * Scale, 0),
+                new Rectangle(0, 0, 5, 5),
+                Color.Red,
+                0f,
+                Vector2.Zero,
+                Scale,
+                SpriteEffects.None,
+                0.7f);
+        }
+
+        /// <summary>
+        /// Turn the Game Item around.
+        /// </summary>
+        public void TurnAround() {
+            if (IsFacingRight) { IsFacingRight = false; }
+            else { IsFacingRight = true; }
+        }
+
+        /// <summary>
+        /// Flip the Game Item's sprite.
+        /// </summary>
+        public void FlipSprite() {
+            if (IsFacingRight) { CurrentEffects = SpriteEffects.None; }
+            else { CurrentEffects = SpriteEffects.FlipHorizontally; }
+        }
+
+        /// <summary>
+        /// Change the Game Item's animation.
+        /// </summary>
+        /// <param name="id">The id on the animation.</param>
+        /// <param name="reset">True if we reset the animation.</param>
+        public void ChangeAnimation(int id, bool reset = true) {
+            if (CurrentAnimation != Animations[id]) {
+                CurrentAnimation.Reset();
+                CurrentAnimation = Animations[id];
+            }
+            else if (reset)
+                CurrentAnimation.Reset();
+
+            UpdateFields();
+        }
+
+        /// <summary>
+        /// Change the Game Item's animation.
+        /// </summary>
+        /// <param name="animation">The animation.</param>
+        /// <param name="reset">True if we reset the animation.</param>
+        public void ChangeAnimation(Animation animation, bool reset = true) {
+            if (CurrentAnimation != animation) {
+                CurrentAnimation.Reset();
+                CurrentAnimation = animation;
+            }
+            else if (reset)
+                CurrentAnimation.Reset();
+
+            UpdateFields();
+        }
+
+        /// <summary>
+        /// Update the Game Item's fields.
+        /// </summary>
+        protected virtual void UpdateFields() {
+            // Get which frame to draw on our spritesheet.
+            SpritePos = CurrentAnimation.CurrentLocation;
+            Offset = CurrentAnimation.CurrentOffset;
+            Hurtbox = CurrentAnimation.CurrentHurtbox;
+            Hitbox = CurrentAnimation.CurrentHitbox;
+
+            // -- Logic -- //
+            // Scale fields for calculations
+            Offset = new Vector2(Offset.X * Scale, Offset.Y * Scale);
+            int scaledPosWidth = SpritePos.Width * (int)Scale;
+            Vector2 scaledPosChange = new Vector2(CurrentAnimation.CurrentPositionChange.X * (int)Scale, -CurrentAnimation.CurrentPositionChange.Y * (int)Scale);
+            Hurtbox = new Hurtbox((int)Hurtbox.ScaleOffset(Scale).Offset.X, (int)Hurtbox.ScaleOffset(Scale).Offset.Y, Hurtbox.Width, Hurtbox.Height, Hurtbox.BlockState);
+            Hitbox = new Hitbox((int)Hitbox.ScaleOffset(Scale).Offset.X, (int)Hitbox.ScaleOffset(Scale).Offset.Y, Hitbox.Width, Hitbox.Height, Hitbox.Damage);
+
+            if (!IsFacingRight) {
+                // Flip Offset
+                Offset = new Vector2(-Offset.X - scaledPosWidth + ScaledWidth, Offset.Y);
+                // Flip Position Change
+                scaledPosChange = new Vector2(-scaledPosChange.X, scaledPosChange.Y);
+                // Flip hurtboxes
+                int x = (int)Hurtbox.Offset.X - Hurtbox.ScaleSize(Scale).Width + ScaledWidth;
+                int y = (int)Hurtbox.Offset.Y;
+                Hurtbox = new Hurtbox(x, y, Hurtbox.Width, Hurtbox.Height, Hurtbox.BlockState);
+                // Flip hitboxes
+                int x2 = (int)-Hitbox.Offset.X - Hitbox.ScaleSize(Scale).Width + ScaledWidth;
+                int y2 = (int)Hitbox.Offset.Y;
+                Hitbox = new Hitbox(x2, y2, Hitbox.Width, Hitbox.Height, Hitbox.Damage);
+            }
+
+            // Update fields
+            Position += scaledPosChange;
+        }
+
+        /// <summary>
+        /// Reset the Game Item to it's originally defined start.
+        /// </summary>
+        public virtual void Reset() {
+            DrawPosition = new Vector2(0, 0);
+            Hurtbox = new Hurtbox(0, 0, 0, 0);
+            Hitbox = new Hitbox(0, 0, 0, 0, 0);
+            Velocity = new Vector2(0, 0);
+            Offset = new Vector2(0, 0);
+            IsFacingRight = StartingFacingRight;
+            if (StartingFacingRight) { CurrentEffects = SpriteEffects.None; }
+            else { CurrentEffects = SpriteEffects.FlipHorizontally; }
+            CurrentAnimation.Reset();
+        }
+    }
+}
