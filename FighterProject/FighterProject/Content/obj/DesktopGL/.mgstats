@@ -1,0 +1,6 @@
+Source File,Dest File,Processor Type,Content Type,Source File Size,Dest File Size,Build Seconds
+"C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/cursor.png","C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/bin/DesktopGL/cursor.xnb","TextureProcessor","Texture2DContent",335,5797,0.1760181
+"C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/fonts/default.spritefont","C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/bin/DesktopGL/fonts/default.xnb","LocalizedFontProcessor","SpriteFontContent",2427,37922,0.1378979
+"C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/gatorIdle1.png","C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/bin/DesktopGL/gatorIdle1.xnb","TextureProcessor","Texture2DContent",2957,65621,0.0117904
+"C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/sprites/ryuSpritesheet.png","C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/bin/DesktopGL/sprites/ryuSpritesheet.xnb","TextureProcessor","Texture2DContent",860434,19046293,0.7074794
+"C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/sunsetBackground1080.png","C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/bin/DesktopGL/sunsetBackground1080.xnb","TextureProcessor","Texture2DContent",69304,8294485,0.3588651
