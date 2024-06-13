@@ -76,7 +76,7 @@ namespace FighterProject.Library {
             if(atkBox.Width == 0 && atkBox.Height == 0){ return false; }
             if(defBox.Width == 0 && defBox.Height == 0){ return false; }
 
-            // Setup variables
+            // Setup variables (Don't scale the offset because we have draw positions)
             float atkLeft = atkDrawPos.X + atkBox.Offset.X;
             float atkRight = atkDrawPos.X + atkBox.ScaleSize(atkScale).Width + atkBox.Offset.X;
             float atkBottom = atkDrawPos.Y + atkBox.ScaleSize(atkScale).Height + atkBox.Offset.Y;

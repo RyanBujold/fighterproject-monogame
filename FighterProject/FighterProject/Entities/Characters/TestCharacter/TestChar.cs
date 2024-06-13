@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using static FighterProject.Library.Hurtbox;
+using static FighterProject.Library.MotionInput;
 
 namespace FighterProject.Entities.Characters {
     /// <summary>
@@ -17,10 +18,10 @@ namespace FighterProject.Entities.Characters {
         public static readonly string SpriteSheet = "sprites/ryuSpritesheet";
 
         public enum TestChar_Actions {
-            Jab = 10,
-            Low_Kick = 11,
-            Jump_Attack = 12,
-            Fireball = 13,
+            Jab = 11,
+            Low_Kick = 12,
+            Jump_Attack = 13,
+            Fireball = 14,
         }
 
         /// <summary>
@@ -65,9 +66,16 @@ namespace FighterProject.Entities.Characters {
                     new Rectangle(423, 110, 70, 110),
                     new Rectangle(490, 111, 68, 110),
                     new Rectangle(555, 112, 68, 110),
-                    new Rectangle(625, 112, 68, 110), 
+                    new Rectangle(625, 112, 68, 110),
                     new Rectangle(700, 112, 68, 110),
                     new Rectangle(770, 112, 68, 110),
+                }
+            },
+            {
+                (int)Actions.Crouch,
+                new Rectangle[] {
+                    new Rectangle(547, 17, 60, 91),
+                    new Rectangle(677, 42, 66, 69),
                 }
             },
             {
@@ -150,7 +158,7 @@ namespace FighterProject.Entities.Characters {
                 new Rectangle[] {
                     new Rectangle(8, 1405, 85, 110),
                     new Rectangle(105, 1405, 95, 110),
-                    new Rectangle(205, 1405, 95, 110), 
+                    new Rectangle(205, 1405, 95, 110),
                     new Rectangle(310, 1405, 110, 110),
                     new Rectangle(426, 1407, 135, 120),
                 }
@@ -193,13 +201,20 @@ namespace FighterProject.Entities.Characters {
             {
                 (int)Actions.Walk_Backward,
                 new Animation(new List<Frame>() {
-                    new Frame(_sprites[(int)Actions.Walk_Backward][0], new Hurtbox(0, 0, 70, 100, DefenseState.Blocking)),
-                    new Frame(_sprites[(int)Actions.Walk_Backward][1], new Hurtbox(0, 0, 70, 100, DefenseState.Blocking)),
-                    new Frame(_sprites[(int)Actions.Walk_Backward][2], new Hurtbox(0, 0, 70, 100, DefenseState.Blocking)),
-                    new Frame(_sprites[(int)Actions.Walk_Backward][3], new Hurtbox(0, 0, 70, 100, DefenseState.Blocking)),
-                    new Frame(_sprites[(int)Actions.Walk_Backward][4], new Hurtbox(0, 0, 70, 100, DefenseState.Blocking)),
-                    new Frame(_sprites[(int)Actions.Walk_Backward][5], new Hurtbox(0, 0, 70, 100, DefenseState.Blocking)),
+                    new Frame(_sprites[(int)Actions.Walk_Backward][0], new Hurtbox(0, 0, 70, 100)),
+                    new Frame(_sprites[(int)Actions.Walk_Backward][1], new Hurtbox(0, 0, 70, 100)),
+                    new Frame(_sprites[(int)Actions.Walk_Backward][2], new Hurtbox(0, 0, 70, 100)),
+                    new Frame(_sprites[(int)Actions.Walk_Backward][3], new Hurtbox(0, 0, 70, 100)),
+                    new Frame(_sprites[(int)Actions.Walk_Backward][4], new Hurtbox(0, 0, 70, 100)),
+                    new Frame(_sprites[(int)Actions.Walk_Backward][5], new Hurtbox(0, 0, 70, 100)),
                 }, frameRate:5, loop:true)
+            },
+            {
+                (int)Actions.Crouch,
+                new Animation(new List<Frame>() {
+                    new Frame(_sprites[(int)Actions.Crouch][0], new Hurtbox(0, 0, 70, 100), Yoffset:15),
+                    new Frame(_sprites[(int)Actions.Crouch][1], new Hurtbox(0, 40, 76, 60), Yoffset:40),
+                }, frameRate:2, stopOnFinish:false)
             },
             {
                 (int)Actions.Turn_Around,
@@ -218,15 +233,23 @@ namespace FighterProject.Entities.Characters {
             {
                 (int)Actions.Throw,
                 new Animation(new List<Frame>() {
-                    new Frame(_sprites[(int)Actions.Throw][0], Xoffset:-12, Yoffset:10, setVelocity:true),
-                    new Frame(_sprites[(int)Actions.Throw][0], Xoffset:-12, Yoffset:10),
-                    new Frame(_sprites[(int)Actions.Throw][1], Xoffset:-10, Yoffset:10),
-                    new Frame(_sprites[(int)Actions.Throw][2], Xoffset:5, Yoffset:10),
-                    new Frame(_sprites[(int)Actions.Throw][3], Xoffset:20, Yoffset:10),
-                    new Frame(_sprites[(int)Actions.Throw][4], Xoffset:30, Yoffset:10, Xvelocity:-2.5f, setVelocity:true),
-                    new Frame(_sprites[(int)Actions.Throw][4], Xoffset:30, Yoffset:10),
+                    new Frame(_sprites[(int)Actions.Throw][0], new Hurtbox(0, 0, 70, 100), Xoffset:-12, Yoffset:10, setVelocity:true),
+                    new Frame(_sprites[(int)Actions.Throw][0], new Hurtbox(0, 0, 70, 100), new Hitbox(40, 17, 25, 25, damage:0, hitstun:0), Xoffset:-12, Yoffset:10),
+                    new Frame(_sprites[(int)Actions.Throw][2], new Hurtbox(0, 0, 70, 100), Xoffset:-12, Yoffset:10),
+                    new Frame(_sprites[(int)Actions.Throw][2], new Hurtbox(0, 0, 70, 100), Xoffset:-12, Yoffset:10),
+                    new Frame(_sprites[(int)Actions.Throw][2], new Hurtbox(0, 0, 70, 100), Xoffset:-12, Yoffset:10),
+
                 },
-                opponentAnimation:
+                secondaryAnimation: new Animation(new List<Frame>() {
+                        new Frame(_sprites[(int)Actions.Throw][0], Xoffset:-12, Yoffset:10, setVelocity:true),
+                        new Frame(_sprites[(int)Actions.Throw][0], Xoffset:-12, Yoffset:10),
+                        new Frame(_sprites[(int)Actions.Throw][1], Xoffset:-10, Yoffset:10),
+                        new Frame(_sprites[(int)Actions.Throw][2], Xoffset:5, Yoffset:10),
+                        new Frame(_sprites[(int)Actions.Throw][3], Xoffset:20, Yoffset:10),
+                        new Frame(_sprites[(int)Actions.Throw][4], Xoffset:30, Yoffset:10, Xvelocity:-2.5f, setVelocity:true),
+                        new Frame(_sprites[(int)Actions.Throw][4], Xoffset:30, Yoffset:10),
+                    },
+                    opponentAnimation:
                     new Animation(
                         new List<Frame>() {
                         new Frame(_sprites[(int)Actions.Hitstun][0], Yoffset:10, Xmovement:50, Ymovement:5, setVelocity:true),
@@ -236,8 +259,8 @@ namespace FighterProject.Entities.Characters {
                         new Frame(_sprites[(int)Actions.Hitstun][0], Yoffset:10, Xmovement:-50, setVelocity:true),
                         new Frame(_sprites[(int)Actions.Hitstun][0], Yoffset:10, Xvelocity:-2f, Yvelocity:1, setVelocity:true, damageTaken:15),
                         new Frame(_sprites[(int)Actions.Defeat][0]),
-                    }, frameRate:5, stopOnFinish:false, stopOnLanding:true),
-                frameRate:5)
+                    }, frameRate:5, stopOnFinish:false, stopOnLanding:true), frameRate:5),
+                frameRate:4)
             },
             {
                 (int)Actions.Hitstun,
@@ -246,7 +269,7 @@ namespace FighterProject.Entities.Characters {
                     new Frame(_sprites[(int)Actions.Hitstun][1], new Hurtbox(0, 10, 70, 90), Xoffset:-5, Yoffset:10),
                     new Frame(_sprites[(int)Actions.Hitstun][2], new Hurtbox(0, 10, 70, 90), Xoffset:-15, Yoffset:10),
                     new Frame(_sprites[(int)Actions.Hitstun][2], new Hurtbox(0, 10, 70, 90), Xoffset:-15, Yoffset:10),
-                }, frameRate:4)
+                }, frameRate:4, stopOnHistun:true)
             },
             {
                 (int)Actions.Defeat,
@@ -271,7 +294,7 @@ namespace FighterProject.Entities.Characters {
                 (int)TestChar_Actions.Jab,
                 new Animation(new List<Frame>() {
                     new Frame(_sprites[(int)TestChar_Actions.Jab][0], new Hurtbox(0, 0, 75, 100)),
-                    new Frame(_sprites[(int)TestChar_Actions.Jab][1], new Hurtbox(0, 0, 100, 100), new Hitbox(90, 17, 25, 25, damage:10)),
+                    new Frame(_sprites[(int)TestChar_Actions.Jab][1], new Hurtbox(0, 0, 100, 100), new Hitbox(90, 17, 25, 25, damage:10, hitstun:9)),
                     new Frame(_sprites[(int)TestChar_Actions.Jab][2], new Hurtbox(0, 0, 75, 100)),
                 }, frameRate:2)
             },
@@ -280,9 +303,9 @@ namespace FighterProject.Entities.Characters {
                 new Animation(new List<Frame>() {
                     new Frame(_sprites[(int)TestChar_Actions.Low_Kick][0], new Hurtbox(0, 35, 100, 65), Yoffset:30),
                     new Frame(_sprites[(int)TestChar_Actions.Low_Kick][1], new Hurtbox(0, 35, 100, 65), Yoffset:30),
-                    new Frame(_sprites[(int)TestChar_Actions.Low_Kick][2], new Hurtbox(0, 35, 100, 65), new Hitbox(75, 80, 75, 20, 10), Yoffset:30),
-                    new Frame(_sprites[(int)TestChar_Actions.Low_Kick][2], new Hurtbox(0, 35, 100, 65), new Hitbox(75, 80, 75, 20, 10), Yoffset:30),
-                    new Frame(_sprites[(int)TestChar_Actions.Low_Kick][2], new Hurtbox(0, 35, 100, 65), new Hitbox(75, 80, 75, 20, 10), Yoffset:30),
+                    new Frame(_sprites[(int)TestChar_Actions.Low_Kick][2], new Hurtbox(0, 35, 100, 65), new Hitbox(75, 80, 75, 20, damage:10, hitstun:11), Yoffset:30),
+                    new Frame(_sprites[(int)TestChar_Actions.Low_Kick][2], new Hurtbox(0, 35, 100, 65), new Hitbox(75, 80, 75, 20, damage:10, hitstun:11), Yoffset:30),
+                    new Frame(_sprites[(int)TestChar_Actions.Low_Kick][2], new Hurtbox(0, 35, 100, 65), new Hitbox(75, 80, 75, 20, damage:10, hitstun:11), Yoffset:30),
                     new Frame(_sprites[(int)TestChar_Actions.Low_Kick][1], new Hurtbox(0, 35, 100, 65), Yoffset:30),
                     new Frame(_sprites[(int)TestChar_Actions.Low_Kick][0], new Hurtbox(0, 35, 100, 65), Yoffset:30),
                 }, frameRate:2)
@@ -292,8 +315,8 @@ namespace FighterProject.Entities.Characters {
                 new Animation(new List<Frame>() {
                     new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][0], new Hurtbox(0, 0, 60, 70), Xoffset:-5, Yoffset:-8),
                     new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][1], new Hurtbox(0, 0, 60, 70), Yoffset:-8),
-                    new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][2], new Hurtbox(0, 0, 60, 60), new Hitbox(25, 35, 90, 35, damage:15), Xoffset:-5, Yoffset:-16),
-                    new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][2], new Hurtbox(0, 0, 60, 60), new Hitbox(25, 35, 90, 35, damage:15), Xoffset:-5, Yoffset:-16),
+                    new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][2], new Hurtbox(0, 0, 60, 60), new Hitbox(25, 35, 90, 35, damage:15, hitstun:8), Xoffset:-5, Yoffset:-16),
+                    new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][2], new Hurtbox(0, 0, 60, 60), new Hitbox(25, 35, 90, 35, damage:15, hitstun:8), Xoffset:-5, Yoffset:-16),
                     new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][1], new Hurtbox(0, 0, 60, 70), Yoffset:-8),
                     new Frame(_sprites[(int)TestChar_Actions.Jump_Attack][0], new Hurtbox(0, 0, 60, 70), Xoffset:-5, Yoffset:-8),
                 }, frameRate:5, stopOnLanding:true, checkForLandingBeforeFinish:true)
@@ -307,11 +330,14 @@ namespace FighterProject.Entities.Characters {
                     new Frame(_sprites[(int)TestChar_Actions.Fireball][3], new Hurtbox(0, 0, 100, 100), Xoffset:-15),
                     new Frame(_sprites[(int)TestChar_Actions.Fireball][3], new Hurtbox(0, 0, 100, 100), Xoffset:-15),
                     new Frame(_sprites[(int)TestChar_Actions.Fireball][3], new Hurtbox(0, 0, 100, 100), Xoffset:-15),
+                    new Frame(_sprites[(int)TestChar_Actions.Fireball][3], new Hurtbox(0, 0, 100, 100), Xoffset:-15),
+                    new Frame(_sprites[(int)TestChar_Actions.Fireball][3], new Hurtbox(0, 0, 100, 100), Xoffset:-15),
+                    new Frame(_sprites[(int)TestChar_Actions.Fireball][3], new Hurtbox(0, 0, 100, 100), Xoffset:-15),
                 }, frameRate:5)
             }
         };
 
-        private readonly float _testCharMoveSpeed = 1.5f;
+        private readonly float _testCharMoveSpeed = 9.5f;
 
         /// <summary>
         /// A Test Character.
@@ -332,9 +358,12 @@ namespace FighterProject.Entities.Characters {
             // Character Attributes
             MoveSpeed = _testCharMoveSpeed;
 
+            // Character special moves
+            MotionInputs.Add(new MotionInput(new List<DirectionalInputs>() { DirectionalInputs.D, DirectionalInputs.DF, DirectionalInputs.F, DirectionalInputs.Btn_1 }));
+
             // Add all states
-            States.Add((int)Actions.Idle, new TestChar_IdleState((int)Actions.Idle,this));
-            States.Add((int)Actions.Turn_Around, new Character_TurnAroundState((int)Actions.Turn_Around,this));
+            States.Add((int)Actions.Idle, new TestChar_IdleState((int)Actions.Idle, this));
+            States.Add((int)Actions.Turn_Around, new Character_TurnAroundState((int)Actions.Turn_Around, this));
             States.Add((int)Actions.Hitstun, new Character_ActionState((int)Actions.Hitstun, this));
             States.Add((int)Actions.Block, new Character_ActionState((int)Actions.Block, this));
             States.Add((int)Actions.Throw, new Character_ActionState((int)Actions.Throw, this));

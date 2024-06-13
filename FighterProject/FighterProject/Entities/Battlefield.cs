@@ -1,5 +1,6 @@
-﻿using FighterProject.Entities;
-using FighterProject.GameStates;
+﻿using System;
+using FighterProject.Entities;
+using FighterProject.Entities.Characters;
 using FighterProject.Library;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -20,27 +21,25 @@ namespace FighterProject.Objects {
         public Texture2D BackgroundSprite { get; private set; }
 
         /// <summary>
-        /// The first Player.
-        /// </summary>
-        public Player Player1 { get; private set; }
-
-        /// <summary>
-        /// The second Player.
-        /// </summary>
-        public Player Player2 { get; private set; }
-
-        /// <summary>
         /// The timer.
         /// </summary>
         public Timer Timer { get; private set; }
 
-        // The time for each round
-        public static int RoundTime = 60;
-        private Timer _roundWinTimer = new Timer(3);
+        // The current players (max 2)
+        private readonly Player[] Players = new Player[2];
+
+        // The time for each round.
+        private static int _roundTime = 99;
+        // True if we have finished the set.
+        private bool _isSetDone = false;
+        // The timer for the win animation.
+        private readonly Timer _setEndTimer = new Timer(3);
         // True if the round ended.
         private bool _roundEnd = false;
-        private bool _player1Win = false;
-        private bool _player2Win = false;
+        // Counts to a ko.
+        private readonly Timer _koTimer = new Timer();
+        // The amount of rounds to win to win the set.
+        private int _winGoal = 2;
         // The player's starting positions.
         public static Vector2 Player1StartingPos = new Vector2(500, Game1.Floor);
         public static Vector2 Player2StartingPos = new Vector2(1400, Game1.Floor);
@@ -49,18 +48,21 @@ namespace FighterProject.Objects {
         private KeyboardState _debugKeyboardState = new KeyboardState();
         private bool _DEBUG = false;
         private bool _debugPressed = false;
-        private Keys _debugKey = Keys.F1;
+        private readonly Keys _debugKey = Keys.F1;
 
         // Fonts
-        private SpriteFont _timerFont;
-        private SpriteFont _winFont;
-
-        // Collision Helpers.
-        private int _p1HitboxGroupId = 0;
-        private int _p2HitboxGroupId = 0;
+        private readonly SpriteFont _timerFont;
+        private readonly SpriteFont _winFont;
 
         // Hitstop timer
         private Timer _hitstop = new Timer(0);
+
+        // Background scrolling
+        private readonly int _leftCamBound = 0;
+        private readonly int _rightCamBound = -960;
+        private static readonly int _centerCamBound = -480;
+        private readonly float _bgScale = 1.5f;
+        private Vector2 _cameraPos = new Vector2(_centerCamBound, -450);
 
         /// <summary>
         /// A battlefield.
@@ -74,11 +76,11 @@ namespace FighterProject.Objects {
             BackgroundSprite = backgroundSprite;
             _timerFont = timerFont;
             _winFont = winFont;
-            Player1 = player1;
-            Player2 = player2;
-            Player1.Character.Opponent = Player2.Character;
-            Player2.Character.Opponent = Player1.Character;
-            Timer = new Timer(RoundTime);
+            Players[0] = player1;
+            Players[1] = player2;
+            Players[0].Character.Opponent = Players[1].Character;
+            Players[1].Character.Opponent = Players[0].Character;
+            Timer = new Timer(_roundTime);
         }
         
         /// <summary>
@@ -99,173 +101,170 @@ namespace FighterProject.Objects {
 
             // Update the players if there is no hitstop.
             _hitstop.Update(timepassed);
-            if (_hitstop.IsFinished || _roundEnd) {
-                Player1.Update(timepassed);
-                Player2.Update(timepassed);
+            if (_hitstop.IsFinished) {
+                foreach (Player p in Players) {
+                    p.Update(timepassed);
+                }
             }
             else { return; }
 
             // Combo tracker.
-            if (Player2.Character.CurrentState.ID != (int)Actions.Hitstun)
-                Player1.ComboCount = 0;
+            foreach(Player p in Players) {
+                if (p.Character.Opponent.CurrentState.ID != (int)Actions.Hitstun)
+                    p.ComboCount = 0;
+            }
 
-            if (Player1.Character.CurrentState.ID != (int)Actions.Hitstun)
-                Player2.ComboCount = 0;
-
-            // If a player won the game, don't check for win again.
-            // Also stop the timer.
-            // Anything after this check will not run while the round has ended.
+            // True if the round is over.
             if (_roundEnd) {
-                _roundWinTimer.Update(timepassed);
-                if (_roundWinTimer.IsFinished)
-                    Reset();
-                return;
+                // Check if someone has obtained the win condition.
+                foreach (Player p in Players) {
+                    if (p.Wins >= _winGoal) {
+                        _isSetDone = true;
+                    }
+                }
+
+                if (_isSetDone)
+                    SetEndState(timepassed);
+                else
+                    RoundEndState(timepassed);
+            }
+            else {
+                FightState(timepassed);
+            }
+    
+        }
+
+        private void FightState(float timepassed) {
+            // Scroll the background
+            foreach (Player p in Players) {
+                if (TouchingLeftBound(p.Character) && !TouchingRightBound(p.Character.Opponent) && p.Character.Velocity.X < 0) {
+                    _cameraPos.X -= p.Character.CurrentHorizontalMovement;
+                    p.Character.Opponent.Position.X -= p.Character.CurrentHorizontalMovement;
+
+                    if (_cameraPos.X > _leftCamBound) {
+                        _cameraPos.X = _leftCamBound;
+                        p.Character.Opponent.Position.X += p.Character.CurrentHorizontalMovement;
+                    }
+                }
+                if (TouchingRightBound(p.Character) && !TouchingLeftBound(p.Character.Opponent) && p.Character.Velocity.X > 0) {
+                    _cameraPos.X -= p.Character.CurrentHorizontalMovement;
+                    p.Character.Opponent.Position.X -= p.Character.CurrentHorizontalMovement;
+
+                    if (_cameraPos.X < _rightCamBound) {
+                        _cameraPos.X = _rightCamBound;
+                        p.Character.Opponent.Position.X += p.Character.CurrentHorizontalMovement;
+                    }
+                }
             }
 
             // Timer
             Timer.Update(timepassed);
 
-            // If time runs out, determine who wins.
-            if (Timer.IsFinished) {
-                // Tie game
-                if (Player1.Character.Health == Player2.Character.Health) {
-                    Stalemate();
+            // Check if a player won
+            CheckWin();
+
+            // Player's character hit opponent's character
+            foreach (Player p in Players) {
+                p.DidHitOpponent = false;
+                if (CollisionBox.DidCollide(p.Character.DrawPosition, p.Character.Opponent.DrawPosition, p.Character.Hitbox, p.Character.Opponent.Hurtbox, p.Character.Scale, p.Character.Opponent.Scale)) {
+                    // If the hitbox group has already collided before and is still active, don't perform any actions.
+                    if (p.HitboxGroupId == p.Character.Hitbox.GroupId)
+                        return;
+
+                    p.HitboxGroupId = p.Character.Hitbox.GroupId;
+                    p.DidHitOpponent = true;
+
+                    // If we hit with a move with a secondary animation, change to that animation.
+                    if (p.Character.CurrentAnimation.SecondaryAnimation != null) {
+                        p.Character.ChangeState(new Character_ActionState(p.Character, p.Character.CurrentAnimation.SecondaryAnimation));
+                        p.DidHitOpponent = false;
+                    }
+                    // If the opponent are blocking, block. Otherwise, go to hitstun.
+                    else if (p.Character.Opponent.isBlockingHigh || p.Character.Opponent.isBlockingLow) {
+                        Block(p.Character.Opponent);
+                    }
+                    else {
+                        TakeDamage(p.Character, p.Character.Opponent, p.Character.Hitbox.Damage);
+                        p.ComboCount++;
+                        p.Character.Opponent.Hitstun = p.Character.Hitbox.Hitstun;
+                    }
+
                 }
-                // Player 1 win
-                else if (Player1.Character.Health > Player2.Character.Health) {
-                    PlayerWins(Player1);
-                    _player1Win = true;
+                else if (p.Character.Hitbox.Equals(Hitbox.None)) {
+                    // Reset the hitbox id one hitbox group has ended collision.
+                    p.HitboxGroupId = 0;
                 }
-                // Player 2 win
-                else if (Player1.Character.Health < Player2.Character.Health) {
-                    PlayerWins(Player2);
-                    _player2Win = true;
+
+                // Manage projectile collisions
+                foreach (Projectile j in p.Character.Projectiles) {
+                    // Check if projectiles collided with each other.
+                    foreach (Projectile k in p.Character.Opponent.Projectiles) {
+                        if (CollisionBox.DidCollide(j.DrawPosition, k.DrawPosition, j.Hitbox, k.Hitbox, j.Scale, k.Scale) && j.Active) {
+                            j.Active = false;
+                            k.Active = false;
+                        }
+                    }
+                    // Check if projectile hit opponent.
+                    if (CollisionBox.DidCollide(j.DrawPosition, p.Character.Opponent.DrawPosition, j.Hitbox, p.Character.Opponent.Hurtbox, j.Scale, p.Character.Opponent.Scale) && j.Active) {
+                        p.DidHitOpponent = true;
+                        j.Active = false;
+                        if (p.Character.Opponent.isBlockingHigh || p.Character.Opponent.isBlockingLow) {
+                            Block(p.Character.Opponent, false, false);
+                        }
+                        else {
+                            TakeDamage(p.Character, p.Character.Opponent, j.Hitbox.Damage, false, false);
+                            p.ComboCount++;
+                            p.Character.Opponent.Hitstun = j.Hitbox.Hitstun;
+                        }
+
+                    }
                 }
-                return;
             }
 
-            // Tie game
-            if (Player1.Character.Health <= 0 && Player2.Character.Health <= 0) {
-                Stalemate();
-                return;
-            }
-            // Player 1 win
-            else if (Player2.Character.Health <= 0) {
-                PlayerWins(Player1);
-                _player1Win = true;
-                return;
-            }
-            // Player 2 win
-            else if (Player1.Character.Health <= 0) {
-                PlayerWins(Player2);
-                _player2Win = true;
-                return;
-            }
-                
-            // Check for collision.       
-            bool player1Hitplayer2 = false;
-            bool player2Hitplayer1 = false;
-            // Player 1 hit Player 2
-            if (CollisionBox.DidCollide(Player1.Character.DrawPosition, Player2.Character.DrawPosition, Player1.Character.Hitbox, Player2.Character.Hurtbox, Player1.Character.Scale, Player2.Character.Scale)) {
-                // If the hitbox group has already collided before and is still active, don't perform any actions.
-                if (_p1HitboxGroupId == Player1.Character.Hitbox.GroupId)
-                    return;
-
-                _p1HitboxGroupId = Player1.Character.Hitbox.GroupId;
-                player1Hitplayer2 = true;
-                // If we are blocking, block. Otherwise, go to hitstun.
-                if (Player2.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                    Block(Player2);
-                else
-                    TakeDamage(Player1, Player2, Player1.Character.Hitbox.Damage);
-
-            }
-            else if(Player1.Character.Hitbox.Equals(Hitbox.None)) {
-                // Reset the hitbox id one hitbox group has ended collision.
-                _p1HitboxGroupId = 0;
-            }
-            // Player 2 hit Player 1
-            if (CollisionBox.DidCollide(Player2.Character.DrawPosition, Player1.Character.DrawPosition, Player2.Character.Hitbox, Player1.Character.Hurtbox, Player2.Character.Scale, Player1.Character.Scale)) {
-                // If the hitbox group has already collided before and is still active, don't perform any actions
-                if (_p2HitboxGroupId == Player2.Character.Hitbox.GroupId)
-                    return;
-
-                _p2HitboxGroupId = Player2.Character.Hitbox.GroupId;
-                player2Hitplayer1 = true;
-                // If we are blocking, block. Otherwise, go to hitstun.
-                if (Player1.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                    Block(Player1);
-                else
-                    TakeDamage(Player2, Player1, Player2.Character.Hitbox.Damage);
-
-            }
-            else if(Player2.Character.Hitbox.Equals(Hitbox.None)) {
-                // Reset the hitbox id one hitbox group has ended collision.
-                _p2HitboxGroupId = 0;
-            }
             // Modify the player character's state.
-            if (player1Hitplayer2) {
-                // If we are blocking, block. Otherwise, go to hitstun.
-                if (Player2.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                    Player2.Character.ChangeState((int)Actions.Block);
-                else
-                    Player2.Character.ChangeState((int)Actions.Hitstun);
+            foreach (Player p in Players) {
+                if (p.DidHitOpponent) {
+                    // If we are blocking, block. Otherwise, go to hitstun.
+                    if (p.Character.Opponent.isBlockingHigh || p.Character.Opponent.isBlockingLow)
+                        p.Character.Opponent.ChangeState((int)Actions.Block);
+                    else
+                        p.Character.Opponent.ChangeState((int)Actions.Hitstun);
 
+                }
             }
-            if (player2Hitplayer1) {
-                // If we are blocking, block. Otherwise, go to hitstun.
-                if (Player1.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                    Player1.Character.ChangeState((int)Actions.Block);
-                else
-                    Player1.Character.ChangeState((int)Actions.Hitstun);
+        }
 
-            }
-            // Manage projectile collisions
-            // Player 1 projectiles hit Player 2
-            foreach(Projectile projectile in Player1.Character.Projectiles) {
-                foreach(Projectile projectile2 in Player2.Character.Projectiles) {
-                    if(CollisionBox.DidCollide(projectile.DrawPosition, projectile2.DrawPosition, projectile.Hitbox, projectile2.Hitbox, projectile.Scale, projectile2.Scale) && projectile.Active) {
-                        projectile.Active = false;
-                        projectile2.Active = false;
+        private void RoundEndState(float timepassed) {
+            _koTimer.Update(timepassed);
+
+            foreach (Player p in Players) {
+                if(p.Character.Health <= 0) {
+                    if(_koTimer.Time*20 > p.Character.Dizzy) {
+                        NextRound();
                     }
                 }
-                if (CollisionBox.DidCollide(projectile.DrawPosition, Player2.Character.DrawPosition, projectile.Hitbox, Player2.Character.Hurtbox, projectile.Scale, Player2.Character.Scale) && projectile.Active) {
-                    projectile.Active = false;
-                    if (Player2.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                        Block(Player2, false, false);
-                    else
-                        TakeDamage(Player1, Player2, projectile.Hitbox.Damage, false, false);
-
-                    if (Player2.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                        Player2.Character.ChangeState((int)Actions.Block);
-                    else 
-                        Player2.Character.ChangeState((int)Actions.Hitstun);
-
-                }
             }
-            // Player 2 projectiles hit Player 1
-            foreach (Projectile projectile in Player2.Character.Projectiles) {
-                foreach (Projectile projectile2 in Player1.Character.Projectiles) {
-                    if (CollisionBox.DidCollide(projectile.DrawPosition, projectile2.DrawPosition, projectile.Hitbox, projectile2.Hitbox, projectile.Scale, projectile2.Scale) && projectile.Active) {
-                        projectile.Active = false;
-                        projectile2.Active = false;
+
+            if(_koTimer.Time >= 10) {
+                _isSetDone = true;
+            }
+        }
+
+        // If a player won the game, don't check for win again.
+        // Also stop the timer.
+        // Anything after this check will not run while the round has ended.
+        private void SetEndState(float timepassed) {
+            foreach (Player p in Players) {
+                p.Character.Velocity.X = 0;
+                if (p.DidWin) {
+                    if (p.Character.CurrentState.ID != (int)Actions.Victory) {
+                        p.Character.ChangeState((int)Actions.Victory);
                     }
                 }
-                if (CollisionBox.DidCollide(projectile.DrawPosition, Player1.Character.DrawPosition, projectile.Hitbox, Player1.Character.Hurtbox, projectile.Scale, Player1.Character.Scale) && projectile.Active) {
-                    projectile.Active = false;
-                    if (Player1.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                        Block(Player1, false);
-                    else
-                        TakeDamage(Player2, Player1, projectile.Hitbox.Damage, false);
+            }            
 
-                    if (Player1.Character.Hurtbox.BlockState == Hurtbox.DefenseState.Blocking)
-                        Player1.Character.ChangeState((int)Actions.Block);
-                    else
-                        Player1.Character.ChangeState((int)Actions.Hitstun);
-
-                }
-            }
-
+            if (_setEndTimer.IsFinished) { NextRound(); }
+            _setEndTimer.Update(timepassed);
         }
 
         /// <summary>
@@ -274,13 +273,22 @@ namespace FighterProject.Objects {
         /// <param name="spriteBatch"></param>
         public void Draw(SpriteBatch spriteBatch, Texture2D testSprite) {
             // Background
-            spriteBatch.Draw(BackgroundSprite, Vector2.Zero, Color.White);
+            spriteBatch.Draw(
+                BackgroundSprite,
+                _cameraPos,
+                new Rectangle(0, 0, Game1.Right_Bound, Game1.Bottom_Bound),
+                Color.White,
+                0f,
+                Vector2.Zero,
+                _bgScale,
+                SpriteEffects.None,
+                0f);
 
             // Temporary UI
             spriteBatch.Draw(
                 testSprite,
-                new Vector2(Game1.Center_Bound.X - (Player1.Character.Health * 4) - 50, 40),
-                new Rectangle(0, 0, Player1.Character.Health * 4, 50),
+                new Vector2(Game1.Center_Bound.X - (Players[0].Character.Health * 4) - 50, 40),
+                new Rectangle(0, 0, Players[0].Character.Health * 4, 50),
                 Color.Yellow,
                 0f,
                 Vector2.Zero,
@@ -290,7 +298,7 @@ namespace FighterProject.Objects {
             spriteBatch.Draw(
                 testSprite,
                 new Vector2(Game1.Center_Bound.X + 30, 40),
-                new Rectangle(0, 0, Player2.Character.Health * 4, 50),
+                new Rectangle(0, 0, Players[1].Character.Health * 4, 50),
                 Color.Yellow,
                 0f,
                 Vector2.Zero,
@@ -298,9 +306,32 @@ namespace FighterProject.Objects {
                 SpriteEffects.None,
                 0f);
             spriteBatch.DrawString(_timerFont, Timer.Time.ToString(), new Vector2(Game1.Center_Bound.X - 20, 40), Color.White);
+            // Debug UI
+            if (_DEBUG) {
+                spriteBatch.Draw(
+                    testSprite,
+                    new Vector2(Game1.Center_Bound.X - (Players[0].Character.Dizzy) - 50, 140),
+                    new Rectangle(0, 0, (int)Math.Round(Players[0].Character.Dizzy), 30),
+                    Color.Purple,
+                    0f,
+                    Vector2.Zero,
+                    1,
+                    SpriteEffects.None,
+                    0f);
+                spriteBatch.Draw(
+                    testSprite,
+                    new Vector2(Game1.Center_Bound.X + 30, 140),
+                    new Rectangle(0, 0, (int)Math.Round(Players[1].Character.Dizzy), 30),
+                    Color.Purple,
+                    0f,
+                    Vector2.Zero,
+                    1,
+                    SpriteEffects.None,
+                    0f);
+            }
 
             // Number of wins UI
-            for (int i = 0; i < Player1.Wins; i++) {
+            for (int i = 0; i < Players[0].Wins; i++) {
                 spriteBatch.Draw(
                     testSprite,
                     new Vector2( (Game1.Center_Bound.X - (50 * i)) - 50, 100),
@@ -312,7 +343,7 @@ namespace FighterProject.Objects {
                     SpriteEffects.None,
                     0f);
             }
-            for (int j = 0; j < Player2.Wins; j++) {
+            for (int j = 0; j < Players[1].Wins; j++) {
                 spriteBatch.Draw(
                     testSprite,
                     new Vector2(Game1.Center_Bound.X + (50 * j), 100),
@@ -326,20 +357,24 @@ namespace FighterProject.Objects {
             }
 
             // Combo Counter
-            if(Player1.ComboCount >= 2)
-                spriteBatch.DrawString(_winFont, $"{Player1.ComboCount} Combo", new Vector2(Game1.Left_Bound + 30, 100), Color.LimeGreen, 0, Vector2.Zero, 2f, SpriteEffects.None, 1f);
+            if (Players[0].ComboCount >= 2)
+                spriteBatch.DrawString(_winFont, $"{Players[0].ComboCount} Combo", new Vector2(Game1.Left_Bound + 30, 100), Color.LimeGreen, 0, Vector2.Zero, 2f, SpriteEffects.None, 1f);
 
-            if(Player2.ComboCount >= 2)
-                spriteBatch.DrawString(_winFont, $"{Player2.ComboCount} Combo", new Vector2(Game1.Right_Bound - 200, 100), Color.LimeGreen, 0, Vector2.Zero, 2f, SpriteEffects.None, 1f);
+            if(Players[1].ComboCount >= 2)
+                spriteBatch.DrawString(_winFont, $"{Players[1].ComboCount} Combo", new Vector2(Game1.Right_Bound - 200, 100), Color.LimeGreen, 0, Vector2.Zero, 2f, SpriteEffects.None, 1f);
 
             // Round win UI
-            if (_roundEnd) {
+            if (_roundEnd && !_isSetDone) {
+                spriteBatch.DrawString(_winFont, _koTimer.Time.ToString(), Game1.Center_Bound - new Vector2(150, 20), Color.Orange, 0, Vector2.Zero, 3f, SpriteEffects.None, 1f);
+            }
+            // Set end UI
+            else if (_isSetDone) {
                 // Player 1 win
-                if (_player1Win) {
+                if (Players[0].DidWin) {
                     spriteBatch.DrawString(_winFont, "Player 1 Wins!", Game1.Center_Bound - new Vector2(200,20), Color.Red, 0, Vector2.Zero, 3f, SpriteEffects.None, 1f);
                 }
                 // Player 2 win
-                else if (_player2Win) {
+                else if (Players[1].DidWin) {
                     spriteBatch.DrawString(_winFont, "Player 2 Wins!", Game1.Center_Bound - new Vector2(200,20), Color.Blue, 0, Vector2.Zero, 3f, SpriteEffects.None, 1f);
                 }
                 // No Winner 
@@ -348,15 +383,66 @@ namespace FighterProject.Objects {
                 }
             }
 
-            // TEST SPRITE
-            if (_DEBUG) {
-                Player1.Character.DrawDebug(spriteBatch, testSprite);
-                Player2.Character.DrawDebug(spriteBatch, testSprite);
+            // Draw the players and debug
+            foreach(Player p in Players) {
+                // TEST SPRITE
+                if (_DEBUG) 
+                    p.Character.DrawDebug(spriteBatch, testSprite);
+                
+                // Players
+                p.Draw(spriteBatch);
             }
 
-            // Players
-            Player1.Draw(spriteBatch);
-            Player2.Draw(spriteBatch, isPlayer2:true);
+        }
+
+        private void CheckWin() {
+            // If time runs out, determine who wins.
+            if (Timer.IsFinished) {
+                // Tie game
+                if (Players[0].Character.Health == Players[1].Character.Health) {
+                    Stalemate();
+                }
+                // Player 1 win
+                else if (Players[0].Character.Health > Players[1].Character.Health) {
+                    PlayerWins(Players[0]);
+                    Players[0].DidWin = true;
+                }
+                // Player 2 win
+                else if (Players[0].Character.Health < Players[1].Character.Health) {
+                    PlayerWins(Players[1]);
+                    Players[1].DidWin = true;
+                }
+                return;
+            }
+
+            // Tie game
+            if (Players[0].Character.Health <= 0 && Players[1].Character.Health <= 0) {
+                Stalemate();
+                return;
+            }
+            // Player 1 win
+            else if (Players[1].Character.Health <= 0) {
+                PlayerWins(Players[0]);
+                Players[0].DidWin = true;
+                return;
+            }
+            // Player 2 win
+            else if (Players[0].Character.Health <= 0) {
+                PlayerWins(Players[1]);
+                Players[1].DidWin = true;
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Checks if enough wins have been gained to win the set.
+        /// </summary>
+        /// <returns>True if a player reaches the round amount.</returns>
+        public bool IsBattlefieldDone() {
+            if (!_setEndTimer.IsFinished)
+               return false;
+
+            return _isSetDone;
         }
 
         /// <summary>
@@ -366,7 +452,6 @@ namespace FighterProject.Objects {
         private void PlayerWins(Player player) {
             player.Character.Velocity.X = 0;
             player.Character.Opponent.Velocity.X = 0;
-            player.Character.ChangeState((int)Actions.Victory);
             player.Character.Opponent.ChangeState((int)Actions.Defeat);
             player.Wins++;
             _roundEnd = true;
@@ -376,60 +461,58 @@ namespace FighterProject.Objects {
         /// Performs logic for when no players win the round.
         /// </summary>
         private void Stalemate() {
-            Player1.Character.Velocity.X = 0;
-            Player2.Character.Velocity.X = 0;
-            Player1.Character.ChangeState((int)Actions.Defeat);
-            Player2.Character.ChangeState((int)Actions.Defeat);
+            foreach(Player p in Players) {
+                p.Character.Velocity.X = 0;
+                p.Character.ChangeState((int)Actions.Defeat);
+            }
             _roundEnd = true;
         }
 
         /// <summary>
-        /// Deal damage to the player.
+        /// Deal damage to the character.
         /// </summary>
-        /// <param name="attacker">The player attacking.</param>
-        /// <param name="defender">The player getting hit.</param>
-        /// <param name="damage">The damage to deal to the player.</param>
-        /// <param name="pushback">True if attacker moves away from hit player.</param>
+        /// <param name="attacker">The character attacking.</param>
+        /// <param name="defender">The character getting hit.</param>
+        /// <param name="damage">The damage to deal to the character.</param>
+        /// <param name="pushback">True if attacker moves away from hit character.</param>
         /// <param name="hitstop">True if we add histop.</param>
-        private void TakeDamage(Player attacker, Player defender, int damage, bool pushback = true, bool hitstop = true) {
+        private void TakeDamage(Character attacker, Character defender, int damage, bool pushback = true, bool hitstop = true) {
             // Deal damage based on hitbox damage.
-            defender.Character.Health -= damage;
+            defender.Health -= damage;
+            defender.Dizzy += damage*1.5f;
             // Move the characters away from each other.
             // Don't apply knockback to opponent if airborne.
-            if (defender.Character.IsFacingRight) {
-                defender.Character.Velocity.X = -1.3f;
-                if (pushback && !attacker.Character.IsAirborne)
-                    attacker.Character.Velocity.X = 1f;
+            if (defender.IsFacingRight) {
+                defender.Velocity.X = -1.3f;
+                if (pushback && !attacker.IsAirborne)
+                    attacker.Velocity.X = 1f;
             }
             else {
-                defender.Character.Velocity.X = 1.3f;
-                if (pushback && !attacker.Character.IsAirborne)
-                    attacker.Character.Velocity.X = -1f;
+                defender.Velocity.X = 1.3f;
+                if (pushback && !attacker.IsAirborne)
+                    attacker.Velocity.X = -1f;
             }
             // Add hitstop.
             if(hitstop)
                 _hitstop = new Timer(0.1f);
-
-            // Combo
-            attacker.ComboCount++;
         }
 
         /// <summary>
-        /// The defending player blocks the attack.
+        /// The defending character blocks the attack.
         /// </summary>
-        /// <param name="player">The attacking player.</param>
-        /// <param name="pushback">True if attacker moves away from hit player.</param>
-        private void Block(Player player, bool pushback = true, bool hitstop = true) {
+        /// <param name="character">The attacking character.</param>
+        /// <param name="pushback">True if attacker moves away from hit character.</param>
+        private void Block(Character character, bool pushback = true, bool hitstop = true) {
             // Move the characters away from each other.
-            if (player.Character.IsFacingRight) {
-                player.Character.Velocity.X = -0.5f;
-                if(pushback && !player.Character.Opponent.IsAirborne)
-                    player.Character.Opponent.Velocity.X = 1f;
+            if (character.IsFacingRight) {
+                character.Velocity.X = -0.5f;
+                if(pushback && !character.Opponent.IsAirborne)
+                    character.Opponent.Velocity.X = 1f;
             }
             else {
-                player.Character.Velocity.X = 0.5f;
-                if(pushback && !player.Character.Opponent.IsAirborne)
-                    player.Character.Opponent.Velocity.X = -1f;
+                character.Velocity.X = 0.5f;
+                if(pushback && !character.Opponent.IsAirborne)
+                    character.Opponent.Velocity.X = -1f;
             }
             // Add hitstop.
             if(hitstop)
@@ -439,14 +522,32 @@ namespace FighterProject.Objects {
         /// <summary>
         /// Resets the game to start a new round.
         /// </summary>
-        public void Reset() {
-            Player1.Reset();
-            Player2.Reset(isPlayer2: true);
-            Timer.Reset();
+        public void NextRound() {
+            foreach(Player p in Players) {
+                p.Reset();
+                p.DidWin = false;
+            }
             _roundEnd = false;
-            _player1Win = false;
-            _player2Win = false;
-            _roundWinTimer.Reset();
+            _cameraPos = new Vector2(_centerCamBound, -450);
+            _setEndTimer.Reset();
+            _koTimer.Reset();
+        }
+
+        /// <summary>
+        /// Checks if the character is touching left bound.
+        /// </summary>
+        /// <param name="c">The character.</param>
+        /// <returns>True if the character is touching the left wall.</returns>
+        private bool TouchingLeftBound(Character c) {
+            return c.Position.X - c.BodyBox.ScaleSize(c.Scale).Width/2 <= Game1.Left_Bound;
+        }
+        /// <summary>
+        /// Checks if the characere is touching the right bound.
+        /// </summary>
+        /// <param name="c">The character.</param>
+        /// <returns>True if the character is touching the right wall.</returns>
+        private bool TouchingRightBound(Character c) {
+            return c.Position.X + c.BodyBox.ScaleSize(c.Scale).Width/2 >= Game1.Right_Bound;
         }
 
     }

@@ -2,7 +2,10 @@
 using FighterProject.Objects;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using static FighterProject.Entities.Player;
 
 namespace FighterProject.Entities.Characters {
@@ -35,6 +38,16 @@ namespace FighterProject.Entities.Characters {
         public static int MaxHealth = 200;
 
         /// <summary>
+        /// The character's dizzy amount.
+        /// </summary>
+        public float Dizzy;
+
+        /// <summary>
+        /// The character's maximum dizzy limit.
+        /// </summary>
+        public static float MaxDizzy = 250;
+
+        /// <summary>
         /// True if the Character is in the air.
         /// </summary>
         public bool IsAirborne { get; private set; }
@@ -51,24 +64,63 @@ namespace FighterProject.Entities.Characters {
             Idle = 0,
             Walk_Forward = 1,
             Walk_Backward = 2,
-            Jump = 3,
-            Turn_Around = 4,
-            Block = 5,
-            Throw = 6,
-            Hitstun = 7,
-            Defeat = 8,
-            Victory = 9,
+            Crouch = 3,
+            Jump = 4,
+            Turn_Around = 5,
+            Block = 6,
+            Throw = 7,
+            Hitstun = 8,
+            Defeat = 9,
+            Victory = 10,
         }
 
         /// <summary>
         /// The Character's Gravity.
         /// </summary>
-        public readonly float Gravity = 0.15f;
+        public readonly float Gravity = 0.1f;
 
         /// <summary>
         /// The Character's Jump Height.
         /// </summary>
-        public readonly float JumpHeight = 3f;
+        public readonly float JumpHeight = 2.5f;
+
+        /// <summary>
+        /// The Character's Aerial Drift amount;
+        /// </summary>
+        public readonly float AerialDrift = 0.02f;
+
+        /// <summary>
+        /// The current inputs read by the Character.
+        /// </summary>
+        public List<Input> CurrentInputs { get; private set; }
+
+        public Queue<List<Input>> InputHistory { get; private set; }
+
+        protected readonly int inputHistoryLimit = 10;
+
+        /// <summary>
+        /// The collision box for colliding with walls or other characters.
+        /// </summary>
+        public CollisionBox BodyBox { get; private set; }
+
+        /// <summary>
+        /// The character's hitstun in number of frames of duration.
+        /// </summary>
+        public int Hitstun { get; set; }
+
+        /// <summary>
+        /// The character's total movement on the x axis.
+        /// </summary>
+        public float CurrentHorizontalMovement { get; private set; }
+
+        /// <summary>
+        /// The character's motion input moves.
+        /// </summary>
+        public List<MotionInput> MotionInputs { get; private set; }
+
+        public bool isBlockingHigh = false;
+
+        public bool isBlockingLow = false;
 
         /// <summary>
         /// The Character's possible states.
@@ -78,7 +130,7 @@ namespace FighterProject.Entities.Characters {
         /// <summary>
         /// The Character's Move Speed.
         /// </summary>
-        protected float MoveSpeed = 2.38f;
+        protected float MoveSpeed = 9f;
 
         /// <summary>
         /// The Character's draw position width.
@@ -91,6 +143,16 @@ namespace FighterProject.Entities.Characters {
         protected readonly int characterHeight = 100;
 
         /// <summary>
+        /// The Character's grounded collision box.
+        /// </summary>
+        protected readonly CollisionBox groundedBodyBox = new CollisionBox(-20, -75, 40, 75);
+
+        /// <summary>
+        /// The Character's airborne collision box.
+        /// </summary>
+        protected readonly CollisionBox airborneBodyBox = new CollisionBox(-20, -75, 40, 30);
+
+        /// <summary>
         /// A Character entity.
         /// </summary>
         /// <param name="sprite">The Character's spritesheet.</param>
@@ -100,39 +162,72 @@ namespace FighterProject.Entities.Characters {
             Width = characterWidth;
             Height = characterHeight;
             Health = MaxHealth;
+            Dizzy = 0;
+            BodyBox = groundedBodyBox;
+            Hitstun = 0;
+
+            MotionInputs = new List<MotionInput>();
+            InputHistory = new Queue<List<Input>>();
+            InputHistory.Enqueue(new List<Input>());
         }
 
         /// <summary>
-        /// Updates the Character's movement and
-        /// animations.
+        /// Updates the Character's movement and animations.
         /// </summary>
         /// <param name="timepassed">The time passed.</param>
         /// <param name="inputs">The player's inputs.</param>
         public void Update(float timepassed, List<Input> inputs) {
 
             // Update the current state with inputs.
+            CurrentInputs = inputs;
+            // If the current inputs match the inputs at the end of the array, don't add them
+            if (!CurrentInputs.SequenceEqual(InputHistory.ElementAt(InputHistory.Count-1))) {
+                InputHistory.Enqueue(CurrentInputs);
+            }
+            // If we have added too many inputs, discard them
+            if (InputHistory.Count > inputHistoryLimit) {
+                InputHistory.Dequeue();
+            }
             CurrentState.Update(inputs);
 
+            // Update Histun
+            if (CurrentState.ID == (int)Actions.Hitstun && Hitstun > 0) {
+                Hitstun--;
+            }
+            else if(CurrentState.ID != (int)Actions.Defeat) {
+                Dizzy -= 0.2f;
+                if (Dizzy < 0) { Dizzy = 0; }
+                if (Dizzy > MaxDizzy) { Dizzy = MaxDizzy; }
+            }
+               
+
             // Animate our character and update fields if animate returns true.
-            if(CurrentAnimation.Animate())
+            if (CurrentAnimation.Animate())
                 UpdateFields();
 
             // Draw
             DrawPosition = new Vector2(Position.X - ScaledWidth / 2, Position.Y - ScaledHeight);
 
             if (CurrentAnimation.CurrentSetVelocity) {
-                if(IsFacingRight)
+                if (IsFacingRight)
                     Velocity = new Vector2(CurrentAnimation.CurrentVelocity.X, -CurrentAnimation.CurrentVelocity.Y);
                 else
                     Velocity = new Vector2(-CurrentAnimation.CurrentVelocity.X, -CurrentAnimation.CurrentVelocity.Y);
             }
 
+            // Check for blocking
+            if(inputs.Contains(Input.L) && !Opponent.IsFacingRight && !IsAirborne) { isBlockingHigh = true; }
+            else if(inputs.Contains(Input.DL) && !Opponent.IsFacingRight && !IsAirborne) { isBlockingHigh = true; isBlockingLow = true; }
+            else if (inputs.Contains(Input.R) && Opponent.IsFacingRight && !IsAirborne) { isBlockingHigh = true; }
+            else if (inputs.Contains(Input.DR) && Opponent.IsFacingRight && !IsAirborne) { isBlockingHigh = true; isBlockingLow = true; }
+            else { isBlockingHigh = false; isBlockingLow = false; }
+
             // Movement Logic
-            float movementSpeed = timepassed / MoveSpeed;
-            Position.X += Velocity.X * movementSpeed;
+            CurrentHorizontalMovement = Velocity.X * MoveSpeed;
+            Position.X += CurrentHorizontalMovement;
 
             // Jump Logic
-            Position.Y += Velocity.Y * movementSpeed;
+            Position.Y += Velocity.Y * MoveSpeed;
             if (Position.Y < Game1.Floor) {
                 IsAirborne = true;
                 Velocity.Y += Gravity;
@@ -141,15 +236,34 @@ namespace FighterProject.Entities.Characters {
                 IsAirborne = false;
                 Velocity.Y = 0;
             }
-               
+
+            // Get body box
+            BodyBox = groundedBodyBox;
+            if (IsAirborne) { BodyBox = airborneBodyBox; }
+
             // Boundary Checks
             if (Position.Y > Game1.Floor) { Position.Y = Game1.Floor; IsAirborne = false; }
-            if (Position.X - Hurtbox.ScaleSize(Scale).Width / 2 < Game1.Left_Bound) { Position.X = Hurtbox.ScaleSize(Scale).Width / 2; }
-            if (Position.X + Hurtbox.ScaleSize(Scale).Width / 2 > Game1.Right_Bound) { Position.X = Game1.Right_Bound - Hurtbox.ScaleSize(Scale).Width / 2; }
+            if (Position.X - BodyBox.ScaleSize(Scale).Width / 2 < Game1.Left_Bound) { Position.X = BodyBox.ScaleSize(Scale).Width / 2; }
+            if (Position.X + BodyBox.ScaleSize(Scale).Width / 2 > Game1.Right_Bound) { Position.X = Game1.Right_Bound - BodyBox.ScaleSize(Scale).Width / 2; }
 
-            // Check Character Boundaries with Opponent
-            if (Position.X + ScaledWidth / 2 > Opponent.Position.X && IsFacingRight && !Opponent.IsFacingRight && !IsAirborne && !Opponent.IsAirborne) { Position.X = Opponent.Position.X - ScaledWidth / 2; }
-            if (Position.X - ScaledWidth / 2 < Opponent.Position.X && !IsFacingRight && Opponent.IsFacingRight && !IsAirborne && !Opponent.IsAirborne) { Position.X = Opponent.Position.X + ScaledWidth / 2; }
+            // Check Character Boundaries with Opponent while moving towards the opponent
+            if(CollisionBox.DidCollide(DrawPosition + Velocity, Opponent.DrawPosition + Opponent.Velocity, BodyBox, Opponent.BodyBox, Scale, Opponent.Scale)) {
+                if (Position.X == Opponent.Position.X) {
+                    // If we are colliding on top of the opponent, move backwards based on the direction we are facing
+                    if(IsFacingRight)
+                        Position.X = Opponent.Position.X - BodyBox.ScaleSize(Scale).Width;
+                    else
+                        Position.X = Opponent.Position.X - BodyBox.ScaleSize(Scale).Width;
+                }
+                else if (Position.X < Opponent.Position.X) {
+                    // If we are on the left side of the opponent, move left
+                    Position.X = Opponent.Position.X - BodyBox.ScaleSize(Scale).Width;
+                }
+                else if(Position.X > Opponent.Position.X) {
+                    // If we are on the right side of the opponent, move right
+                    Position.X = Opponent.Position.X + BodyBox.ScaleSize(Scale).Width;
+                }
+            }
 
             // Update projectiles.
             for (int i = 0; i < Projectiles.Count; i++) {
@@ -170,6 +284,8 @@ namespace FighterProject.Entities.Characters {
         public void Draw(SpriteBatch spriteBatch, bool isPlayer2 = false) {
             Color color = Color.White;
             if (isPlayer2) { color = Color.LightBlue; }
+            float layer = 0.8f;
+            //if (CurrentState.ID != (int)Actions.Crouch) { layer = 1f; } //TODO FIX
             spriteBatch.Draw(
                 Sprite,
                 DrawPosition + Offset,
@@ -179,7 +295,7 @@ namespace FighterProject.Entities.Characters {
                 Vector2.Zero,
                 Scale,
                 CurrentEffects,
-                0.9f);
+                layer);
 
             foreach (Projectile projectile in Projectiles) {
                 projectile.Draw(spriteBatch);
@@ -194,6 +310,7 @@ namespace FighterProject.Entities.Characters {
         public override void DrawDebug(SpriteBatch spriteBatch, Texture2D testSprite) {
             base.DrawDebug(spriteBatch, testSprite);
 
+            // Draw the hitboxes
             spriteBatch.Draw(
                 testSprite,
                 DrawPosition + Hitbox.Offset,
@@ -204,6 +321,7 @@ namespace FighterProject.Entities.Characters {
                 Scale,
                 SpriteEffects.None,
                 0.5f);
+            // Draw the hurtboxes
             spriteBatch.Draw(
                 testSprite,
                 DrawPosition + Hurtbox.Offset,
@@ -214,9 +332,84 @@ namespace FighterProject.Entities.Characters {
                 Scale,
                 SpriteEffects.None,
                 0f);
+            // Draw the collision box
+            spriteBatch.Draw(
+                testSprite,
+                Position + (BodyBox.ScaleOffset(Scale).Offset),
+                BodyBox.Box,
+                Color.Yellow,
+                0f,
+                Vector2.Zero,
+                Scale,
+                SpriteEffects.None,
+                0.2f);
 
+            // Draw the projectile hitboxes
             foreach (Projectile projectile in Projectiles) {
                 projectile.DrawDebug(spriteBatch, testSprite);
+            }
+            // Draw an input reader
+            DrawInputs(spriteBatch, testSprite, DrawPosition, CurrentInputs, Scale);
+            
+            // Draw input history
+            int yOffset = 100;
+            Vector2 historyPos = new Vector2(20, 200);
+            if (!IsFacingRight) { historyPos = new Vector2(Game1.Right_Bound - 250, 200); }
+            Queue<List<Input>> reverse = new Queue<List<Input>>(InputHistory.Reverse());
+            foreach(List<Input> inputs in reverse) {
+                DrawInputs(spriteBatch, testSprite, historyPos, inputs, Scale - 0.3f);
+                historyPos.Y += yOffset;
+            }
+
+        }
+
+        protected void DrawInputs(SpriteBatch spriteBatch, Texture2D testSprite, Vector2 position, List<Input> inputs, float scale) {
+            for (int c = 0; c < 3; c++) {
+                for (int r = 0; r < 3; r++) {
+                    Color color = Color.Gray;
+                    if (c == 0 && r == 0 && inputs.Contains(Input.UL)) { color = Color.Red; }
+                    if (c == 1 && r == 0 && inputs.Contains(Input.U)) { color = Color.Red; }
+                    if (c == 2 && r == 0 && inputs.Contains(Input.UR)) { color = Color.Red; }
+                    if (c == 0 && r == 1 && inputs.Contains(Input.L)) { color = Color.Red; }
+                    //if (c == 1 && r == 1 && inputs.Contains(Input.U)) { color = Color.Red; } TODO neutral
+                    if (c == 2 && r == 1 && inputs.Contains(Input.R)) { color = Color.Red; }
+                    if (c == 0 && r == 2 && inputs.Contains(Input.DL)) { color = Color.Red; }
+                    if (c == 1 && r == 2 && inputs.Contains(Input.D)) { color = Color.Red; }
+                    if (c == 2 && r == 2 && inputs.Contains(Input.DR)) { color = Color.Red; }
+                    spriteBatch.Draw(
+                    testSprite,
+                    position + new Vector2(c * 25, (r * 25) - 100),
+                    new Rectangle(0, 0, 5, 5),
+                    color,
+                    0f,
+                    Vector2.Zero,
+                    scale,
+                    SpriteEffects.None,
+                    0.9f);
+
+                }
+            }
+            for (int i = 0; i < 3; i++) {
+                Color color = Color.Gray;
+                if (i == 0 && inputs.Contains(Input.Button_1)) {
+                    color = Color.Red;
+                }
+                if (i == 1 && inputs.Contains(Input.Button_2)) {
+                    color = Color.Red;
+                }
+                if (i == 2 && inputs.Contains(Input.Button_3)) {
+                    color = Color.Red;
+                }
+                spriteBatch.Draw(
+                    testSprite,
+                    position + new Vector2((i * 35) + 100, -90),
+                    new Rectangle(0, 0, 7, 7),
+                    color,
+                    0f,
+                    Vector2.Zero,
+                    scale,
+                    SpriteEffects.None,
+                    0.9f);
             }
         }
 
@@ -250,20 +443,50 @@ namespace FighterProject.Entities.Characters {
         protected override void UpdateFields() {
             base.UpdateFields();
 
+            // This is here so that secondary animations do damage
             Health -= CurrentAnimation.CurrentDamageTaken;
+            Dizzy += CurrentAnimation.CurrentDamageTaken*1.5f;
         }
 
         /// <summary>
-        /// Reset the Character's attributes.
+        /// Reset the Character's attributes and make sure they are facing the right direction.
         /// </summary>
         public void Reset(bool isPlayer2 = false) {
             ChangeState((int)Actions.Idle);
-            if (!isPlayer2)
+            if (!isPlayer2) {
                 Position = Battlefield.Player1StartingPos;
-            else
+                if (!IsFacingRight) {
+                    TurnAround();
+                    FlipSprite();
+                }
+            }
+            else {
                 Position = Battlefield.Player2StartingPos;
+                if (IsFacingRight) {
+                    TurnAround();
+                    FlipSprite();
+                }
+            }
+            Health = MaxHealth - (int)Math.Round(Dizzy);
+        }
 
-            Health = MaxHealth;
+        /// <summary>
+        /// Checks if two lists of inputs are matching.
+        /// </summary>
+        /// <param name="a">An input list.</param>
+        /// <param name="b">An input list.</param>
+        /// <returns>True if 'a' and 'b' match.</returns>
+        public bool AreInputsEqual(List<Input> a, List<Input> b) {
+            bool match = true;
+            foreach(Input input in a) {
+                if(!b.Contains(input)) 
+                    match = false;
+            }
+            foreach (Input input in b) {
+                if (!a.Contains(input))
+                    match = false;
+            }
+            return match;
         }
     }
 }

@@ -19,9 +19,14 @@ namespace FighterProject.Library {
         public int Damage { get; private set; }
 
         /// <summary>
+        /// The number of frames out of 60 to apply for hitstun.
+        /// </summary>
+        public int Hitstun { get; private set; }
+
+        /// <summary>
         /// An empty hitbox.
         /// </summary>
-        public static Hitbox None = new Hitbox(0, 0, 0, 0, 0);
+        public static Hitbox None = new Hitbox(0, 0, 0, 0, 0, 0);
 
         /// <summary>
         /// An attack hitbox.
@@ -32,8 +37,9 @@ namespace FighterProject.Library {
         /// <param name="height">The height.</param>
         /// <param name="damage">The attack damage.</param>
         /// <param name="id">The hitboxe's group id.</param>
-        public Hitbox(int Xoffset, int Yoffset, int width, int height, int damage, int id = 1) : base(Xoffset, Yoffset, width, height) {
+        public Hitbox(int Xoffset, int Yoffset, int width, int height, int damage, int hitstun, int id = 1) : base(Xoffset, Yoffset, width, height) {
             Damage = damage;
+            Hitstun = hitstun;
             GroupId = id;
         }
 
@@ -52,8 +58,6 @@ namespace FighterProject.Library {
                 return false;
 
         }
-
-        /* Add collision box definition that takes an animation to transition to an animation on hit?*/
 
     }
 }

@@ -28,22 +28,29 @@ namespace FighterProject.Entities.Characters {
         /// Move the Character Right.
         /// </summary>
         protected void MoveRight() {
-            _char.Velocity.X = 1;
-            if (_char.IsFacingRight)
-                _char.ChangeAnimation((int)Actions.Walk_Forward, reset:false);
-            else
-                _char.ChangeAnimation((int)Actions.Walk_Backward, reset:false);
+            if (_char.IsFacingRight) {
+                _char.Velocity.X = 1;
+                _char.ChangeAnimation((int)Actions.Walk_Forward, reset: false);
+            }
+            else {
+                _char.Velocity.X = 0.8f;
+                _char.ChangeAnimation((int)Actions.Walk_Backward, reset: false);
+            }
         }
 
         /// <summary>
         /// Move the Character Left.
         /// </summary>
         protected void MoveLeft() {
-            _char.Velocity.X = -1;
-            if (_char.IsFacingRight)
-                _char.ChangeAnimation((int)Actions.Walk_Backward, reset:false);
-            else
-                _char.ChangeAnimation((int)Actions.Walk_Forward, reset:false);
+            if (_char.IsFacingRight) {
+                _char.Velocity.X = -0.8f;
+                _char.ChangeAnimation((int)Actions.Walk_Backward, reset: false);
+            }  
+            else {
+                _char.Velocity.X = -1;
+                _char.ChangeAnimation((int)Actions.Walk_Forward, reset: false);
+            }
+                
         }
 
     }

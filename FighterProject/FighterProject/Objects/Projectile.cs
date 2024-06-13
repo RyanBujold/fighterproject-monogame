@@ -52,7 +52,7 @@ namespace FighterProject.Objects {
             base.Update();
 
             // Movement logic.
-            float movementSpeed = timepassed / MoveSpeed;
+            float movementSpeed = MoveSpeed;
             Position.X += Velocity.X * movementSpeed;
         }
 

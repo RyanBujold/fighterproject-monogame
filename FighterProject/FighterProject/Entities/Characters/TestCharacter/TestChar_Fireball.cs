@@ -30,17 +30,17 @@ namespace FighterProject.Entities.Characters.TestCharacter {
             {
                 (int)TestChar_Fireball_Actions.Travel,
                 new Animation(new List<Frame>() {
-                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][0], hitbox: new Hitbox(20,10,40,40,damage:10)),
-                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][1], hitbox: new Hitbox(20,10,40,40,damage:10)),
-                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][2], hitbox: new Hitbox(20,10,40,40,damage:10)),
-                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][3], hitbox: new Hitbox(20,10,40,40,damage:10)),
-                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][4], hitbox: new Hitbox(20,10,40,40,damage:10)),
-                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][5], hitbox: new Hitbox(20,10,40,40,damage:10)),
+                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][0], hitbox: new Hitbox(20,10,40,40,damage:10,hitstun:19)),
+                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][1], hitbox: new Hitbox(20,10,40,40,damage:10,hitstun:19)),
+                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][2], hitbox: new Hitbox(20,10,40,40,damage:10,hitstun:19)),
+                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][3], hitbox: new Hitbox(20,10,40,40,damage:10,hitstun:19)),
+                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][4], hitbox: new Hitbox(20,10,40,40,damage:10,hitstun:19)),
+                        new Frame(_sprites[(int)TestChar_Fireball_Actions.Travel][5], hitbox: new Hitbox(20,10,40,40,damage:10,hitstun:19)),
                 }, frameRate:5, loop:true, stopOnFinish:false)
             }
         };
 
-        private readonly float _fireballMoveSpeed = 0.7f;
+        private readonly float _fireballMoveSpeed = 15f;
         private static readonly float _Xoffset = 75;
         private static readonly float _Yoffset = 70;
 

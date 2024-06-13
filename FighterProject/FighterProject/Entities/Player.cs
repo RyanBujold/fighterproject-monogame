@@ -1,4 +1,5 @@
 ﻿using FighterProject.Entities.Characters;
+using FighterProject.Library;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -27,18 +28,37 @@ namespace FighterProject.Entities {
         public int Wins { get; set; }
 
         /// <summary>
+        /// True if the player won.
+        /// </summary>
+        public bool DidWin { get; set; }
+
+        /// <summary>
         /// The player's current combo count.
         /// </summary>
         public int ComboCount { get; set; }
 
         /// <summary>
+        /// Collision helper for when hitboxes already hit.
+        /// </summary>
+        public int HitboxGroupId { get; set; }
+
+        /// <summary>
+        /// True if we hit the opponent.
+        /// </summary>
+        public bool DidHitOpponent { get; set; }
+
+        /// <summary>
         /// The possible inputs from the controller.
         /// </summary>
         public enum Input {
-            Up,
-            Down,
-            Left,
-            Right,
+            U,
+            D,
+            L,
+            R,
+            UL,
+            UR,
+            DL,
+            DR,
             Button_1,
             Button_2,
             Button_3,
@@ -83,39 +103,58 @@ namespace FighterProject.Entities {
             _keyboardState = Keyboard.GetState();
             _gamePadState = GamePad.GetState(PlayerIndex.One);
 
-            List<Input> inputs = new List<Input>(); 
+            List<Input> directions = new List<Input>();
+            List<Input> buttons = new List<Input>();
 
             // -- Inputs -- //
             if (_gamePadState.IsConnected && Id == 1) {
                // Gamepad (SWITCH Arcade Stick Based)
-                if (_gamePadState.IsButtonDown(Buttons.DPadRight)) { inputs.Add(Input.Right); }
-                if (_gamePadState.IsButtonDown(Buttons.DPadLeft)) { inputs.Add(Input.Left); }
-                if (_gamePadState.IsButtonDown(Buttons.DPadUp)) { inputs.Add(Input.Up); }
-                if (_gamePadState.IsButtonDown(Buttons.DPadDown)) { inputs.Add(Input.Down); }
-                if (_gamePadState.IsButtonDown(Buttons.Y)) { inputs.Add(Input.Button_1); }
-                if (_gamePadState.IsButtonDown(Buttons.X)) { inputs.Add(Input.Button_2); }
-                if (_gamePadState.IsButtonDown(Buttons.RightShoulder)) { inputs.Add(Input.Button_3); }
+                if (_gamePadState.IsButtonDown(Buttons.DPadRight)) { directions.Add(Input.R); }
+                if (_gamePadState.IsButtonDown(Buttons.DPadLeft)) { directions.Add(Input.L); }
+                if (_gamePadState.IsButtonDown(Buttons.DPadUp)) { directions.Add(Input.U); }
+                if (_gamePadState.IsButtonDown(Buttons.DPadDown)) { directions.Add(Input.D); }
+                if (_gamePadState.IsButtonDown(Buttons.Y)) { buttons.Add(Input.Button_1); }
+                if (_gamePadState.IsButtonDown(Buttons.X)) { buttons.Add(Input.Button_2); }
+                if (_gamePadState.IsButtonDown(Buttons.RightShoulder)) { buttons.Add(Input.Button_3); }
             }
             else if(Id == 1){ //Player 1
                 // Keyboard
-                if (_keyboardState.IsKeyDown(Keys.D)) { inputs.Add(Input.Right); }
-                if (_keyboardState.IsKeyDown(Keys.A)) { inputs.Add(Input.Left); }
-                if (_keyboardState.IsKeyDown(Keys.W)) { inputs.Add(Input.Up); }
-                if (_keyboardState.IsKeyDown(Keys.S)) { inputs.Add(Input.Down); }
-                if (_keyboardState.IsKeyDown(Keys.G)) { inputs.Add(Input.Button_1); }
-                if (_keyboardState.IsKeyDown(Keys.H)) { inputs.Add(Input.Button_2); }
-                if (_keyboardState.IsKeyDown(Keys.J)) { inputs.Add(Input.Button_3); }
+                if (_keyboardState.IsKeyDown(Keys.D)) { directions.Add(Input.R); }
+                if (_keyboardState.IsKeyDown(Keys.A)) { directions.Add(Input.L); }
+                if (_keyboardState.IsKeyDown(Keys.W)) { directions.Add(Input.U); }
+                if (_keyboardState.IsKeyDown(Keys.S)) { directions.Add(Input.D); }
+                if (_keyboardState.IsKeyDown(Keys.G)) { buttons.Add(Input.Button_1); }
+                if (_keyboardState.IsKeyDown(Keys.H)) { buttons.Add(Input.Button_2); }
+                if (_keyboardState.IsKeyDown(Keys.J)) { buttons.Add(Input.Button_3); }
             }
             else if(Id == 2) { //Player 2
                 // Keyboard
-                if (_keyboardState.IsKeyDown(Keys.Right)) { inputs.Add(Input.Right); }
-                if (_keyboardState.IsKeyDown(Keys.Left)) { inputs.Add(Input.Left); }
-                if (_keyboardState.IsKeyDown(Keys.Up)) { inputs.Add(Input.Up); }
-                if (_keyboardState.IsKeyDown(Keys.Down)) { inputs.Add(Input.Down); }
-                if (_keyboardState.IsKeyDown(Keys.NumPad0)) { inputs.Add(Input.Button_1); }
-                if (_keyboardState.IsKeyDown(Keys.Decimal)) { inputs.Add(Input.Button_2); }
-                if (_keyboardState.IsKeyDown(Keys.NumPad3)) { inputs.Add(Input.Button_3); }
+                if (_keyboardState.IsKeyDown(Keys.Right)) { directions.Add(Input.R); }
+                if (_keyboardState.IsKeyDown(Keys.Left)) { directions.Add(Input.L); }
+                if (_keyboardState.IsKeyDown(Keys.Up)) { directions.Add(Input.U); }
+                if (_keyboardState.IsKeyDown(Keys.Down)) { directions.Add(Input.D); }
+                if (_keyboardState.IsKeyDown(Keys.NumPad0)) { buttons.Add(Input.Button_1); }
+                if (_keyboardState.IsKeyDown(Keys.Decimal)) { buttons.Add(Input.Button_2); }
+                if (_keyboardState.IsKeyDown(Keys.NumPad3)) { buttons.Add(Input.Button_3); }
             }
+
+            // Clean up directional inputs
+            if(directions.Count >= 2) {
+                // Simultanious Opposite Cardinal Directions Check
+                if (directions.Contains(Input.L) && directions.Contains(Input.R)) { directions = new List<Input>(); }
+                if (directions.Contains(Input.U) && directions.Contains(Input.D)) { directions = new List<Input>(); }
+
+                // Corner input checks
+                if (directions.Contains(Input.U) && directions.Contains(Input.L)) { directions = new List<Input> { Input.UL }; }
+                if (directions.Contains(Input.U) && directions.Contains(Input.R)) { directions = new List<Input> { Input.UR }; }
+                if (directions.Contains(Input.D) && directions.Contains(Input.L)) { directions = new List<Input> { Input.DL }; }
+                if (directions.Contains(Input.D) && directions.Contains(Input.R)) { directions = new List<Input> { Input.DR }; }
+            }
+
+            // Add the verified inputs
+            List<Input> inputs = new List<Input>();
+            inputs.AddRange(directions);
+            inputs.AddRange(buttons);
 
             // Update the Character we are Controlling.
             Character.Update(timepassed, inputs);
@@ -125,15 +164,15 @@ namespace FighterProject.Entities {
         /// Draw the Player.
         /// </summary>
         /// <param name="spriteBatch">The spriteBatch.</param>
-        public void Draw(SpriteBatch spriteBatch, bool isPlayer2 = false) {
-            Character.Draw(spriteBatch, isPlayer2);
+        public void Draw(SpriteBatch spriteBatch) {
+            Character.Draw(spriteBatch, Id == 2);
         }
 
         /// <summary>
         /// Reset the Player.
         /// </summary>
-        public void Reset(bool isPlayer2 = false) {
-            Character.Reset(isPlayer2);
+        public void Reset() {
+            Character.Reset(Id == 2);
         }
 
     }

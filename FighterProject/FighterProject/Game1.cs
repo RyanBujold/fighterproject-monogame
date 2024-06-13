@@ -13,22 +13,23 @@ namespace FighterProject {
          * - https://rareelementgames.wordpress.com/2017/04/21/game-state-management/
          */
 
-        /* TODO LIST 
-         * - Make art assets.
-         */
-
         /* BACKLOG
-         * - Add complex hitboxes/hurtboxes.
-         * - Clean up pipeline ressources.
-         * - Make it so that when a player walks into another, it
-         *   pushes the idle player away.
-         * - Modify how jump arcs function?
+         * High Priority
+         * - Add new character spritesheets.
+         * - Change how characters overlapping works when drawing.
+         * - Add attack properties (low, high)
+         * Mid Priority
+         * - If hurtboxes have x set, it doesn't account for the direction they are facing. (need to fix)
+         * - Change how animations deal damage?
+         * - Add complex hitboxes/hurtboxes to animations.
+         * - Update how frame rate works with animations? (constistent frame rate? update animation class?)
+         * - Refactor walking in character idle state.
+         * Low Priority
          * - Add complexity to fireballs (appear, collide).
-         * - Add a camera and scorlling backgrounds.
-         * - Add hitbox priority.
-         * - Give throws a hitbox instead of checking distance between players.
-         * - Modify how throwing/second animation logic works with characters with different sprites.
+         * - Add hitbox priority?
          * - Add fade in and fade out between rounds.
+         * - Modify how throwing/second animation logic works with characters with different sprites.
+         * - Fix strange position debug not alligning with sprite center during movement.
          */
 
         private GraphicsDeviceManager _graphics;
@@ -94,7 +95,8 @@ namespace FighterProject {
             // TODO: use this.Content to load your game content here
             // Make sure content is defined first in order for add state to load the state's content. 
             GameStateManager.Instance.SetContent(Content);
-            GameStateManager.Instance.AddState(new Battle_GameState(GraphicsDevice));
+            // The state to start with.
+            GameStateManager.Instance.AddState(new MainMenu_GameState(GraphicsDevice));
 
             renderTarget = new RenderTarget2D(GraphicsDevice, renderWidth, renderHeight);
         }

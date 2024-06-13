@@ -54,6 +54,12 @@ namespace FighterProject.Library {
         public int CurrentDamageTaken { get; private set; }
 
         /// <summary>
+        /// An animation to ovveride the current animation when 
+        /// triggered.
+        /// </summary>
+        public Animation SecondaryAnimation { get; private set; }
+
+        /// <summary>
         /// An animation to perform at the same time as the current
         /// animation.
         /// </summary>
@@ -80,6 +86,11 @@ namespace FighterProject.Library {
         public bool StopOnLanding { get; private set; }
 
         /// <summary>
+        /// True if we should stop when the histun is finished.
+        /// </summary>
+        public bool StopOnHistun { get; private set; }
+
+        /// <summary>
         /// True if we check our conditions at the end of the animation.
         /// </summary>
         public bool CheckForLandingBeforeFinish { get; private set; }
@@ -95,13 +106,14 @@ namespace FighterProject.Library {
         /// character on each frame.
         /// </summary>
         /// <param name="frames">The list of frames.</param>
+        /// <param name="secondaryAnimation">An animation that can replace the current one when triggered.</param>
         /// <param name="opponentAnimation">The opponent's animation.</param>
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="loop">True if animation should loop.</param>
         /// <param name="stopOnFinish">True if we stop when animation finishes.</param>
         /// <param name="stopOnLanding">True if we stop the animation when landing.</param>
         /// <param name="checkForLandingBeforeFinish">True if we want to check if we landed before the animation finishes.</param>
-        public Animation(List<Frame> frames, Animation opponentAnimation = null, int frameRate = 1, bool loop = false, bool stopOnFinish = true, bool stopOnLanding = false, bool checkForLandingBeforeFinish = false) {
+        public Animation(List<Frame> frames, Animation secondaryAnimation = null,Animation opponentAnimation = null, int frameRate = 1, bool loop = false, bool stopOnFinish = true, bool stopOnLanding = false, bool stopOnHistun = false, bool checkForLandingBeforeFinish = false) {
             CurrentIndex = 0;
             CurrentLocation = frames[0].SpriteLocation;
             CurrentHurtbox = frames[0].Hurtbox;
@@ -121,9 +133,13 @@ namespace FighterProject.Library {
             IsFinished = false;
             StopOnFinish = stopOnFinish;
             StopOnLanding = stopOnLanding;
+            StopOnHistun= stopOnHistun;
             CheckForLandingBeforeFinish = checkForLandingBeforeFinish;
 
-            if(opponentAnimation != null) {
+            if (secondaryAnimation != null) {
+                SecondaryAnimation = secondaryAnimation;
+            }
+            if (opponentAnimation != null) {
                 OpponentAnimation = opponentAnimation;
             }
 

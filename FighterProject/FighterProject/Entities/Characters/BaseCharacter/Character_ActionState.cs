@@ -17,7 +17,7 @@ namespace FighterProject.Entities.Characters {
         /// A Character Action State.
         /// </summary>
         /// <param name="character">The Character.</param>
-        /// <param name="animationID">The animation identifier.</param>
+        /// <param name="id">The animation identifier.</param>
         public Character_ActionState(int id, Character character) {
             ID = id;
             _char = character;
@@ -52,15 +52,23 @@ namespace FighterProject.Entities.Characters {
 
         public virtual void Update(List<Input> inputs) {
 
+            // If we want to stop when histun stops.
+            if (_char.CurrentAnimation.StopOnHistun) {
+                if (_char.Hitstun <= 0)
+                    _char.ChangeState((int)Actions.Idle);
+            }
             // If we want to stop when finished animating.
-            if(_char.CurrentAnimation.IsFinished && _char.CurrentAnimation.StopOnFinish)
+            else if(_char.CurrentAnimation.IsFinished && _char.CurrentAnimation.StopOnFinish) {
                 _char.ChangeState((int)Actions.Idle);
+            }
             // If we want to stop when landing.
-            else if (_char.CurrentAnimation.IsFinished && _char.CurrentAnimation.StopOnLanding && !_char.IsAirborne)
+            else if (_char.CurrentAnimation.IsFinished && _char.CurrentAnimation.StopOnLanding && !_char.IsAirborne) {
                 _char.ChangeState((int)Actions.Idle);
+            }
             // If we want to stop when landing before the animation is finished.
-            else if(_char.CurrentAnimation.CheckForLandingBeforeFinish && _char.CurrentAnimation.StopOnLanding && !_char.IsAirborne)
+            else if(_char.CurrentAnimation.CheckForLandingBeforeFinish && _char.CurrentAnimation.StopOnLanding && !_char.IsAirborne) {
                 _char.ChangeState((int)Actions.Idle);
+            }
 
         }
     }

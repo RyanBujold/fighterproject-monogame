@@ -43,6 +43,9 @@ namespace FighterProject.GameStates {
         public override void Update(GameTime gameTime) {
             float timepassed = gameTime.ElapsedGameTime.Milliseconds;
 
+            // Check if the battle is over
+            if (battlefield.IsBattlefieldDone())
+                GameStateManager.Instance.ChangeStates(new MainMenu_GameState(_graphicsDevice));
             // Battlefield
             battlefield.Update(timepassed);
         }

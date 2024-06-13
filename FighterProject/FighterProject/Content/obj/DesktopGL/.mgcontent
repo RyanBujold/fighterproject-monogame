@@ -4,15 +4,11 @@
   <Platform>DesktopGL</Platform>
   <Config />
   <SourceFiles>
-    <File>C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/cursor.png</File>
-    <File>C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/fonts/default.spritefont</File>
-    <File>C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/gatorIdle1.png</File>
-    <File>C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/sprites/ryuSpritesheet.png</File>
-    <File>C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/sunsetBackground1080.png</File>
+    <File>C:/Users/Ryan/Documents/Projects/Fighter Project Files/FighterProject/FighterProject/Content/fonts/default.spritefont</File>
+    <File>C:/Users/Ryan/Documents/Projects/Fighter Project Files/FighterProject/FighterProject/Content/sprites/ryuSpritesheet.png</File>
+    <File>C:/Users/Ryan/Documents/Projects/Fighter Project Files/FighterProject/FighterProject/Content/sunsetBackground1080.png</File>
   </SourceFiles>
   <DestFiles>
-    <File xsi:nil="true" />
-    <File xsi:nil="true" />
     <File xsi:nil="true" />
     <File xsi:nil="true" />
     <File xsi:nil="true" />

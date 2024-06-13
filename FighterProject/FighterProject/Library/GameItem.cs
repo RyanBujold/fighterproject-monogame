@@ -108,7 +108,7 @@ namespace FighterProject.Library {
             Sprite = sprite;
             DrawPosition = new Vector2(0, 0);
             Hurtbox = new Hurtbox(0, 0, 0, 0);
-            Hitbox = new Hitbox(0, 0, 0, 0, 0);
+            Hitbox = new Hitbox(0, 0, 0, 0, 0, 0);
             Velocity = new Vector2(0, 0);
             Offset = new Vector2(0, 0);
             Scale = scale;
@@ -239,7 +239,7 @@ namespace FighterProject.Library {
             int scaledPosWidth = SpritePos.Width * (int)Scale;
             Vector2 scaledPosChange = new Vector2(CurrentAnimation.CurrentPositionChange.X * (int)Scale, -CurrentAnimation.CurrentPositionChange.Y * (int)Scale);
             Hurtbox = new Hurtbox((int)Hurtbox.ScaleOffset(Scale).Offset.X, (int)Hurtbox.ScaleOffset(Scale).Offset.Y, Hurtbox.Width, Hurtbox.Height, Hurtbox.BlockState);
-            Hitbox = new Hitbox((int)Hitbox.ScaleOffset(Scale).Offset.X, (int)Hitbox.ScaleOffset(Scale).Offset.Y, Hitbox.Width, Hitbox.Height, Hitbox.Damage);
+            Hitbox = new Hitbox((int)Hitbox.ScaleOffset(Scale).Offset.X, (int)Hitbox.ScaleOffset(Scale).Offset.Y, Hitbox.Width, Hitbox.Height, Hitbox.Damage, Hitbox.Hitstun);
 
             if (!IsFacingRight) {
                 // Flip Offset
@@ -253,7 +253,7 @@ namespace FighterProject.Library {
                 // Flip hitboxes
                 int x2 = (int)-Hitbox.Offset.X - Hitbox.ScaleSize(Scale).Width + ScaledWidth;
                 int y2 = (int)Hitbox.Offset.Y;
-                Hitbox = new Hitbox(x2, y2, Hitbox.Width, Hitbox.Height, Hitbox.Damage);
+                Hitbox = new Hitbox(x2, y2, Hitbox.Width, Hitbox.Height, Hitbox.Damage, Hitbox.Hitstun);
             }
 
             // Update fields
@@ -266,7 +266,7 @@ namespace FighterProject.Library {
         public virtual void Reset() {
             DrawPosition = new Vector2(0, 0);
             Hurtbox = new Hurtbox(0, 0, 0, 0);
-            Hitbox = new Hitbox(0, 0, 0, 0, 0);
+            Hitbox = new Hitbox(0, 0, 0, 0, 0, 0);
             Velocity = new Vector2(0, 0);
             Offset = new Vector2(0, 0);
             IsFacingRight = StartingFacingRight;

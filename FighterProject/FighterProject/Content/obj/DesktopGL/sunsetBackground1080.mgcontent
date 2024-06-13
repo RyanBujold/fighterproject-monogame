@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PipelineBuildEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <SourceFile>C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/sunsetBackground1080.png</SourceFile>
-  <SourceTime>2022-06-05T13:08:28.532035-04:00</SourceTime>
-  <DestFile>C:/Users/rabuj/source/repos/FighterProject/FighterProject/Content/bin/DesktopGL/sunsetBackground1080.xnb</DestFile>
-  <DestTime>2022-07-01T16:29:28.7042778-04:00</DestTime>
+  <SourceFile>C:/Users/Ryan/Documents/Projects/Fighter Project Files/FighterProject/FighterProject/Content/sunsetBackground1080.png</SourceFile>
+  <SourceTime>2022-06-05T13:08:30-04:00</SourceTime>
+  <DestFile>C:/Users/Ryan/Documents/Projects/Fighter Project Files/FighterProject/FighterProject/Content/bin/DesktopGL/sunsetBackground1080.xnb</DestFile>
+  <DestTime>2024-06-08T11:09:41.6021164-04:00</DestTime>
   <Importer>TextureImporter</Importer>
-  <ImporterTime>2020-08-10T16:17:54-04:00</ImporterTime>
+  <ImporterTime>2022-07-26T07:44:56-04:00</ImporterTime>
   <Processor>TextureProcessor</Processor>
-  <ProcessorTime>2020-08-10T16:17:54-04:00</ProcessorTime>
+  <ProcessorTime>2022-07-26T07:44:56-04:00</ProcessorTime>
   <Parameters>
     <Key>ColorKeyColor</Key>
     <Value>255,0,255,255</Value>

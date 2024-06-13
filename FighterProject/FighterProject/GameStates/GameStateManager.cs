@@ -95,9 +95,11 @@ namespace FighterProject.GameStates {
         /// Unload all the content from the state stack.
         /// </summary>
         public void UnloadContent() {
-            foreach(GameState state in _stateStack) {
+            /*foreach(GameState state in _stateStack) {
                 state.UnloadContent();
-            }
+            }*/
+            // Unloads all the content from the content manager.
+            _content.Unload();
         }
 
     }
