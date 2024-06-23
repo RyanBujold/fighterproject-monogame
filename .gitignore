@@ -1,5 +1,14 @@
 # ignore all
 *
-# excetp these
+# except these
 !.gitignore
 !*.cs
+# even if they are in subdirectories
+!*/
+FighterProject/FighterProject/Program.cs
+FighterProject/FighterProject/obj/Release/netcoreapp3.1/win-x64/FighterProject.AssemblyInfo.cs
+FighterProject/FighterProject/obj/Release/netcoreapp3.1/win-x64/.NETCoreApp,Version=v3.1.AssemblyAttributes.cs
+FighterProject/FighterProject/obj/Debug/netcoreapp3.1/FighterProject.AssemblyInfo.cs
+FighterProject/FighterProject/obj/Debug/netcoreapp3.1/.NETCoreApp,Version=v3.1.AssemblyAttributes.cs
+FighterProject/FighterProject/obj/Debug/net6.0/FighterProject.AssemblyInfo.cs
+FighterProject/FighterProject/obj/Debug/net6.0/.NETCoreApp,Version=v6.0.AssemblyAttributes.cs
